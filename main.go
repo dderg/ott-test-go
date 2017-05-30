@@ -40,8 +40,7 @@ func sendMessage(message int) error {
 			return redis.TxFailedErr
 		}
 
-		_, err = tx.RPush(queueKey, message)
-		return err
+		return tx.RPush(queueKey, message).Err()
 	}, generatorKey)
 
 	return err
@@ -67,9 +66,7 @@ func generator() error {
 				return err
 			}
 		case <-reclaim:
-			err := client.Expire(generatorKey, lockTime).Err()
-
-			if err != nil {
+			if err := client.Expire(generatorKey, lockTime).Err(); err != nil {
 				return err
 			}
 		}
@@ -86,8 +83,7 @@ func eventHandler(msg string) {
 }
 
 func writeError(msg string) {
-	err := client.RPush(errorsKey, msg).Err()
-	if err != nil {
+	if err := client.RPush(errorsKey, msg).Err(); err != nil {
 		fmt.Println("Error write error", err)
 	}
 }
@@ -127,8 +123,7 @@ func printErrors() {
 		os.Exit(1)
 	}
 
-	err := client.Del(errorsKey).Err()
-	if err != nil {
+	if err = client.Del(errorsKey).Err(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
@@ -154,15 +149,13 @@ func main() {
 		select {
 		case <-tick:
 			if isGenerator {
-				err := generator()
-				if err != nil {
+				if err := generator(); err != nil {
 					fmt.Println("Generator err", err)
 				} else {
 					isGenerator = false
 				}
 			} else {
-				err := reader()
-				if err != nil {
+				if err := reader(); err != nil {
 					fmt.Println("Reader err", err)
 				} else {
 					isGenerator = true
