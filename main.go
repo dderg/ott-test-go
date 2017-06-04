@@ -117,18 +117,18 @@ func reader() error {
 }
 
 func printErrors() {
-	errors, err := client.LRange(errorsKey, 0, -1).Result()
+	pipe := client.TxPipeline()
+
+	errors := pipe.LRange(errorsKey, 0, -1)
+	pipe.Del(errorsKey)
+
+	_, err := pipe.Exec()
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	if err = client.Del(errorsKey).Err(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-
-	fmt.Println(errors)
+	fmt.Println(errors.Val())
 }
 
 func main() {
